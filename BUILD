@@ -29,6 +29,7 @@ cc_library(
         "pngstruct.h",
     ],
     includes = ["."],
+    copts = ["-DPNG_ARM_NEON_OPT=0"],
     linkopts =
         select({
             "@platforms//os:linux": ["-lm"],
