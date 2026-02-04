@@ -17,6 +17,7 @@ third_party {
   identifier {
     type: "Git"
     value: "https://github.com/glennrp/libpng.git"
-    version: "v1.6.51"
+    version: "ca38cbf364b1241abd1f87aff45aeb1a9e4eccf8"
+    closest_version: "v1.6.51"
   }
 }
