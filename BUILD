@@ -1,4 +1,20 @@
-licenses(["notice"])
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
+load("@rules_license//rules:license.bzl", "license")
+
+package(
+    default_applicable_licenses = [":license"],
+)
+
+license(
+    name = "license",
+    package_name = "libpng",
+    copyright_notice = "Copyright (c) 2000-2002, 2004, 2006-2017 Glenn Randers-Pehrson",
+    license_kinds = ["@rules_license//licenses/spdx:libpng-2.0"],
+    license_text = "LICENSE",
+    visibility = ["//visibility:public"],
+)
+
+exports_files(["LICENSE"])
 
 cc_library(
     name = "png",
@@ -28,14 +44,13 @@ cc_library(
         "pngpriv.h",
         "pngstruct.h",
     ],
-    includes = ["."],
     copts = ["-DPNG_ARM_NEON_OPT=0"],
+    includes = ["."],
     linkopts =
         select({
             "@platforms//os:linux": ["-lm"],
             "//conditions:default": [],
         }),
     visibility = ["//visibility:public"],
-    deps = ["@zlib//:zlib"],
+    deps = ["@zlib"],
 )
-
