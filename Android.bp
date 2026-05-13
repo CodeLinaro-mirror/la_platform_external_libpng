@@ -151,6 +151,9 @@ cc_test {
 cc_fuzz {
     name: "libpng_read_fuzzer",
     host_supported: true,
+    sanitize: {
+        address: true,
+    },
 
     static_libs: [
         "libpng",
