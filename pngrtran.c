@@ -441,13 +441,17 @@ png_set_quantize(png_structrp png_ptr, png_colorp palette,
 
       /* Initialize the array to index colors.
        *
+       * Ensure quantize_index can fit 256 elements (PNG_MAX_PALETTE_LENGTH)
+       * rather than num_palette elements. This is to prevent buffer overflows
+       * caused by malformed PNG files with out-of-range palette indices.
+       *
        * Be careful to avoid leaking memory. Applications are allowed to call
        * this function more than once per png_struct.
        */
       png_free(png_ptr, png_ptr->quantize_index);
       png_ptr->quantize_index = (png_bytep)png_malloc(png_ptr,
-          (png_alloc_size_t)num_palette);
-      for (i = 0; i < num_palette; i++)
+          PNG_MAX_PALETTE_LENGTH);
+      for (i = 0; i < PNG_MAX_PALETTE_LENGTH; i++)
          png_ptr->quantize_index[i] = (png_byte)i;
    }
 
@@ -1693,19 +1697,51 @@ png_init_read_transformations(png_structrp png_ptr)
                   }
                   else /* if (png_ptr->trans_alpha[i] != 0xff) */
                   {
-                     png_byte v, w;
+                     if ((png_ptr->flags & PNG_FLAG_OPTIMIZE_ALPHA) != 0)
+                     {
+                        /* Premultiply only:
+                         * component = round((component * alpha) / 255)
+                         */
+                        png_uint_32 component;
 
-                     v = png_ptr->gamma_to_1[palette[i].red];
-                     png_composite(w, v, png_ptr->trans_alpha[i], back_1.red);
-                     palette[i].red = png_ptr->gamma_from_1[w];
+                        component = png_ptr->gamma_to_1[palette[i].red];
+                        component =
+                            (component * png_ptr->trans_alpha[i] + 128) / 255;
+                        palette[i].red = png_ptr->gamma_from_1[component];
 
-                     v = png_ptr->gamma_to_1[palette[i].green];
-                     png_composite(w, v, png_ptr->trans_alpha[i], back_1.green);
-                     palette[i].green = png_ptr->gamma_from_1[w];
+                        component = png_ptr->gamma_to_1[palette[i].green];
+                        component =
+                            (component * png_ptr->trans_alpha[i] + 128) / 255;
+                        palette[i].green = png_ptr->gamma_from_1[component];
 
-                     v = png_ptr->gamma_to_1[palette[i].blue];
-                     png_composite(w, v, png_ptr->trans_alpha[i], back_1.blue);
-                     palette[i].blue = png_ptr->gamma_from_1[w];
+                        component = png_ptr->gamma_to_1[palette[i].blue];
+                        component =
+                            (component * png_ptr->trans_alpha[i] + 128) / 255;
+                        palette[i].blue = png_ptr->gamma_from_1[component];
+                     }
+                     else
+                     {
+                        /* Composite with background color:
+                         * component =
+                         *    alpha * component + (1 - alpha) * background
+                         */
+                        png_byte v, w;
+
+                        v = png_ptr->gamma_to_1[palette[i].red];
+                        png_composite(w, v,
+                            png_ptr->trans_alpha[i], back_1.red);
+                        palette[i].red = png_ptr->gamma_from_1[w];
+
+                        v = png_ptr->gamma_to_1[palette[i].green];
+                        png_composite(w, v,
+                            png_ptr->trans_alpha[i], back_1.green);
+                        palette[i].green = png_ptr->gamma_from_1[w];
+
+                        v = png_ptr->gamma_to_1[palette[i].blue];
+                        png_composite(w, v,
+                            png_ptr->trans_alpha[i], back_1.blue);
+                        palette[i].blue = png_ptr->gamma_from_1[w];
+                     }
                   }
                }
                else
